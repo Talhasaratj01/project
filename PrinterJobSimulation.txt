@@ -1,0 +1,65 @@
+class PrinterTray {
+    private int pagesAvailable = 10;  
+    public synchronized void loadPages(int pages) {
+        System.out.println("Loading " + pages + " pages into the printer tray.");
+        pagesAvailable += pages;
+        System.out.println("Current pages in tray: " + pagesAvailable);
+        notify();
+    }
+    public synchronized void printPages(int pages) {
+        while (pages > pagesAvailable) {
+            try {
+                System.out.println("Not enough pages. Waiting for pages to be loaded...");
+                wait();
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+            }
+        }
+        pagesAvailable -= pages;
+        System.out.println("Printing " + pages + " pages...");
+        System.out.println("Remaining pages in tray: " + pagesAvailable);
+    }
+}
+class PageLoaderThread extends Thread {
+    private PrinterTray tray;
+    public PageLoaderThread(PrinterTray tray) {
+        this.tray = tray;
+    }
+    @Override
+    public void run() {
+        try {
+            Thread.sleep(2000); 
+            tray.loadPages(10); 
+            Thread.sleep(3000); 
+            tray.loadPages(5);  
+        } catch (InterruptedException e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+class PrinterThread extends Thread {
+    private PrinterTray tray;
+    public PrinterThread(PrinterTray tray) {
+        this.tray = tray;
+    }
+    @Override
+    public void run() {
+        try {
+            tray.printPages(15);  
+            tray.printPages(5);  
+        } catch (Exception e) {
+            Thread.currentThread().interrupt();
+        }
+    }
+}
+
+public class PrinterJobSimulation {
+    public static void main(String[] args) {
+        PrinterTray printerTray = new PrinterTray();
+        PageLoaderThread loaderThread = new PageLoaderThread(printerTray);
+        loaderThread.start();
+        PrinterThread printerThread = new PrinterThread(printerTray);
+        printerThread.start();
+    }
+}
